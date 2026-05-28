@@ -52,11 +52,68 @@ app.post("/api/admin/logout", (req, res) => {
     message: "Logout Successful",
   });
 });
+
+app.post("/api/tours/add", (req, res) => {
+  const {
+    tour_name,
+    destination,
+    price,
+    duration,
+    start_date,
+    end_date,
+    description,
+    image,
+    status,
+  } = req.body;
+
+  const sql = `
+    INSERT INTO tours
+    (
+      tour_name,
+      destination,
+      price,
+      duration,
+      start_date,
+      end_date,
+      description,
+      image,
+      status
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `;
+
+  db.query(
+    sql,
+    [
+      tour_name,
+      destination,
+      price,
+      duration,
+      start_date,
+      end_date,
+      description,
+      image,
+      status,
+    ],
+    (err, result) => {
+      if (err) {
+        console.log(err);
+
+        res.status(500).json(err);
+      } else {
+        res.json({
+          success: true,
+          message: "Tour Added Successfully",
+        });
+      }
+    },
+  );
+});
 app.get("/", (req, res) => {
   res.send("Backend Running");
 });
 
-const PORT = 5000;
+const PORT = 4000;
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
