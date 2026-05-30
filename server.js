@@ -26,6 +26,8 @@ db.connect((err) => {
   }
 });
 
+//// Admin Login and Logout
+
 app.post("/api/admin/login", (req, res) => {
   const { email, password } = req.body;
 
@@ -65,6 +67,8 @@ app.post("/api/admin/logout", (req, res) => {
     message: "Logout Successful",
   });
 });
+
+//// Tours CRUD Operations
 
 app.post("/api/tours/add", (req, res) => {
   const {
@@ -192,6 +196,56 @@ app.put("/api/tours/update/:id", (req, res) => {
       }
     },
   );
+});
+
+app.post("/api/packages/add", (req, res) => {
+  console.log("REQ BODY =>", req.body);
+
+  const { package_name, destination, price, duration, hotel_name, status } =
+    req.body;
+
+  const sql = `
+    INSERT INTO packages
+    (
+      package_name,
+      destination,
+      price,
+      duration,
+      hotel_name,
+      status
+    )
+    VALUES (?, ?, ?, ?, ?, ?)
+  `;
+
+  db.query(
+    sql,
+    [package_name, destination, price, duration, hotel_name, status],
+    (err, result) => {
+      if (err) {
+        console.log("MYSQL ERROR =>", err);
+        return res.status(500).json(err);
+      }
+
+      console.log(result);
+
+      res.json({
+        success: true,
+        message: "Package Added Successfully",
+      });
+    },
+  );
+});
+
+app.get("/api/packages", (req, res) => {
+  const sql = "SELECT * FROM packages ORDER BY id DESC";
+
+  db.query(sql, (err, result) => {
+    if (err) {
+      res.status(500).json(err);
+    } else {
+      res.json(result);
+    }
+  });
 });
 
 app.get("/", (req, res) => {
