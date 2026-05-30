@@ -6,7 +6,10 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+const PORT = 4000;
 const mysql = require("mysql2");
+
+const jwt = require("jsonwebtoken");
 
 const db = mysql.createConnection({
   host: "localhost",
@@ -33,9 +36,18 @@ app.post("/api/admin/login", (req, res) => {
       res.status(500).json(err);
     } else {
       if (result.length > 0) {
+        const token = jwt.sign(
+          {
+            id: result[0].id,
+            email: result[0].email,
+          },
+          "mysecretkey",
+          { expiresIn: "1h" },
+        );
         res.json({
           success: true,
           message: "Login Successful",
+          token: token,
         });
       } else {
         res.status(401).json({
@@ -46,6 +58,7 @@ app.post("/api/admin/login", (req, res) => {
     }
   });
 });
+
 app.post("/api/admin/logout", (req, res) => {
   res.json({
     success: true,
@@ -109,11 +122,81 @@ app.post("/api/tours/add", (req, res) => {
     },
   );
 });
+
+app.get("/api/tours", (req, res) => {
+  const sql = "SELECT * FROM tours ORDER BY id DESC";
+
+  db.query(sql, (err, result) => {
+    if (err) {
+      res.status(500).json(err);
+    } else {
+      res.json(result);
+    }
+  });
+});
+
+app.delete("/api/tours/delete/:id", (req, res) => {
+  const id = req.params.id;
+
+  const sql = "DELETE FROM tours WHERE id=?";
+
+  db.query(sql, [id], (err, result) => {
+    if (err) {
+      res.status(500).json(err);
+    } else {
+      res.json({
+        success: true,
+        message: "Tour Deleted Successfully",
+      });
+    }
+  });
+});
+
+app.put("/api/tours/update/:id", (req, res) => {
+  const id = req.params.id;
+
+  const {
+    tour_name,
+    destination,
+    price,
+    duration,
+    start_date,
+    end_date,
+    status,
+  } = req.body;
+
+  const sql = `
+    UPDATE tours
+    SET
+      tour_name=?,
+      destination=?,
+      price=?,
+      duration=?,
+      start_date=?,
+      end_date=?,
+      status=?
+    WHERE id=?
+  `;
+
+  db.query(
+    sql,
+    [tour_name, destination, price, duration, start_date, end_date, status, id],
+    (err, result) => {
+      if (err) {
+        res.status(500).json(err);
+      } else {
+        res.json({
+          success: true,
+          message: "Tour Updated Successfully",
+        });
+      }
+    },
+  );
+});
+
 app.get("/", (req, res) => {
   res.send("Backend Running");
 });
-
-const PORT = 4000;
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
