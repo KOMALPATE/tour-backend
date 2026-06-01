@@ -199,34 +199,46 @@ app.put("/api/tours/update/:id", (req, res) => {
 });
 
 app.post("/api/packages/add", (req, res) => {
-  console.log("REQ BODY =>", req.body);
-
-  const { package_name, destination, price, duration, hotel_name, status } =
-    req.body;
+  const {
+    package_name,
+    destination,
+    price,
+    duration_days,
+    duration_nights,
+    hotel_name,
+    status,
+  } = req.body;
 
   const sql = `
     INSERT INTO packages
     (
       package_name,
       destination,
+      duration_days,
+      duration_nights,
       price,
-      duration,
       hotel_name,
       status
     )
-    VALUES (?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
   `;
 
   db.query(
     sql,
-    [package_name, destination, price, duration, hotel_name, status],
+    [
+      package_name,
+      destination,
+      duration_days,
+      duration_nights,
+      price,
+      hotel_name,
+      status,
+    ],
     (err, result) => {
       if (err) {
-        console.log("MYSQL ERROR =>", err);
+        console.log(err);
         return res.status(500).json(err);
       }
-
-      console.log(result);
 
       res.json({
         success: true,
