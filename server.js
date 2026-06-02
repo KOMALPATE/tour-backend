@@ -260,6 +260,100 @@ app.get("/api/packages", (req, res) => {
   });
 });
 
+app.post("/app/inquiry/add", (req, res) => {
+  const { customer_name, phone, destination, package_name, status } = req.body;
+
+  const sql = `INSERT INTO inquiries
+  (customer_name,phone,destination,package_name,status) VALUES (?,?,?,?,?)`;
+
+  db.query(
+    sql,
+    [customer_name, phone, destination, package_name, status],
+    (err, result) => {
+      if (err) {
+        console.log(err);
+        return res.status(500).json(err);
+      }
+
+      const inquiryID = result.insertId;
+
+      // Insert into inquiry_logs
+      db.query(
+        `
+        INSERT INTO inquiry_timeline
+        (
+          inquiry_id,
+          status,
+          remarks
+        )
+        VALUES(?,?,?)
+        `,
+        [inquiryId, "New Inquiry", "Customer submitted inquiry"],
+      );
+
+      res.json({
+        success: true,
+        message: "Inquiry Added Successfully",
+      });
+    },
+  );
+});
+
+app.get("/api/inquiries", (req, res) => {
+  const sql = `
+    SELECT
+      i.id,
+      u.customer_name,
+      u.phone,
+      i.destination,
+      i.package_name,
+      i.status,
+      i.created_at
+    FROM inquiries i
+    JOIN users u
+    ON i.user_id = u.id
+    ORDER BY i.id DESC
+  `;
+
+  db.query(sql, (err, result) => {
+    if (err) {
+      return res.status(500).json(err);
+    }
+
+    res.json(result);
+  });
+});
+app.get("/api/users", (req, res) => {
+  const sql = "SELECT * FROM users ORDER BY id DESC";
+
+  db.query(sql, (err, result) => {
+    if (err) {
+      return res.status(500).json(err);
+    }
+
+    res.json(result);
+  });
+});
+
+app.get("/api/timeline/:id", (req, res) => {
+  const id = req.params.id;
+
+  const sql = `
+    SELECT *
+    FROM inquiry_timeline
+    WHERE inquiry_id = ?
+    ORDER BY created_at ASC
+  `;
+
+  db.query(sql, [id], (err, result) => {
+    if (err) {
+      return res.status(500).json(err);
+    }
+
+    res.json(result);
+  });
+});
+
 app.get("/", (req, res) => {
   res.send("Backend Running");
 });
