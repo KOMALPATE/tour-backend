@@ -11,6 +11,7 @@ const mysql = require("mysql2");
 
 const jwt = require("jsonwebtoken");
 
+// MySQL database connection. Keep table names and queries aligned with the existing schema.
 const db = mysql.createConnection({
   host: "localhost",
   user: "root",
@@ -28,6 +29,8 @@ db.connect((err) => {
 
 //// Admin Login and Logout
 
+// API: POST /api/admin/login
+// Checks admin email/password and returns a JWT token for authenticated admin calls.
 app.post("/api/admin/login", (req, res) => {
   const { email, password } = req.body;
 
@@ -61,6 +64,8 @@ app.post("/api/admin/login", (req, res) => {
   });
 });
 
+// API: POST /api/admin/logout
+// Frontend can call this when clearing the stored admin token/session.
 app.post("/api/admin/logout", (req, res) => {
   res.json({
     success: true,
@@ -70,6 +75,8 @@ app.post("/api/admin/logout", (req, res) => {
 
 //// Tours CRUD Operations
 
+// API: POST /api/tours/add
+// Creates a new tour record using the request body fields.
 app.post("/api/tours/add", (req, res) => {
   const {
     tour_name,
@@ -127,6 +134,8 @@ app.post("/api/tours/add", (req, res) => {
   );
 });
 
+// API: GET /api/tours
+// Returns all tours for listing in the admin panel.
 app.get("/api/tours", (req, res) => {
   const sql = "SELECT * FROM tours ORDER BY id DESC";
 
@@ -139,6 +148,8 @@ app.get("/api/tours", (req, res) => {
   });
 });
 
+// API: DELETE /api/tours/delete/:id
+// Deletes one tour by id from the URL parameter.
 app.delete("/api/tours/delete/:id", (req, res) => {
   const id = req.params.id;
 
@@ -156,6 +167,8 @@ app.delete("/api/tours/delete/:id", (req, res) => {
   });
 });
 
+// API: PUT /api/tours/update/:id
+// Updates editable tour fields for the selected tour id.
 app.put("/api/tours/update/:id", (req, res) => {
   const id = req.params.id;
 
@@ -198,6 +211,8 @@ app.put("/api/tours/update/:id", (req, res) => {
   );
 });
 
+// API: POST /api/packages/add
+// Creates a new travel package record.
 app.post("/api/packages/add", (req, res) => {
   const {
     package_name,
@@ -248,6 +263,8 @@ app.post("/api/packages/add", (req, res) => {
   );
 });
 
+// API: GET /api/packages
+// Returns all packages for listing in the admin panel.
 app.get("/api/packages", (req, res) => {
   const sql = "SELECT * FROM packages ORDER BY id DESC";
 
@@ -260,6 +277,8 @@ app.get("/api/packages", (req, res) => {
   });
 });
 
+// API: POST /app/inquiry/add
+// Adds a customer inquiry and writes the first timeline entry for that inquiry.
 app.post("/app/inquiry/add", (req, res) => {
   const { customer_name, phone, destination, package_name, status } = req.body;
 
@@ -277,7 +296,7 @@ app.post("/app/inquiry/add", (req, res) => {
 
       const inquiryID = result.insertId;
 
-      // Insert into inquiry_logs
+      // Insert into inquiry_timeline after the inquiry is created.
       db.query(
         `
         INSERT INTO inquiry_timeline
@@ -288,7 +307,7 @@ app.post("/app/inquiry/add", (req, res) => {
         )
         VALUES(?,?,?)
         `,
-        [inquiryId, "New Inquiry", "Customer submitted inquiry"],
+        [inquiryID, "New Inquiry", "Customer submitted inquiry"],
       );
 
       res.json({
@@ -299,6 +318,8 @@ app.post("/app/inquiry/add", (req, res) => {
   );
 });
 
+// API: GET /api/inquiries
+// Returns inquiries with matching user information for the admin inquiry list.
 app.get("/api/inquiries", (req, res) => {
   const sql = `
     SELECT
@@ -323,6 +344,9 @@ app.get("/api/inquiries", (req, res) => {
     res.json(result);
   });
 });
+
+// API: GET /api/users
+// Returns all users for the admin users list.
 app.get("/api/users", (req, res) => {
   const sql = "SELECT * FROM users ORDER BY id DESC";
 
@@ -335,6 +359,8 @@ app.get("/api/users", (req, res) => {
   });
 });
 
+// API: GET /api/timeline/:id
+// Returns timeline records for one inquiry id.
 app.get("/api/timeline/:id", (req, res) => {
   const id = req.params.id;
 
@@ -354,6 +380,27 @@ app.get("/api/timeline/:id", (req, res) => {
   });
 });
 
+// API: GET /api/dashboard-counts
+// Returns total counts used by dashboard summary cards.
+app.get("/api/dashboard-counts", (req, res) => {
+  const sql = `
+    SELECT
+      (SELECT COUNT(*) FROM tours) AS totalTours,
+      (SELECT COUNT(*) FROM packages) AS totalPackages,
+      (SELECT COUNT(*) FROM users) AS totalUsers,
+      (SELECT COUNT(*) FROM inquiries) AS totalInquiries
+  `;
+
+  db.query(sql, (err, result) => {
+    if (err) {
+      return res.status(500).json(err);
+    }
+    res.json(result[0]);
+  });
+});
+
+// API: GET /
+// Simple health check route to confirm the backend is running.
 app.get("/", (req, res) => {
   res.send("Backend Running");
 });
