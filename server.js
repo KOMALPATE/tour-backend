@@ -11,6 +11,13 @@ const mysql = require("mysql2");
 
 const jwt = require("jsonwebtoken");
 
+const {
+  TOUR_STATUS,
+  PACKAGE_STATUS,
+  INQUIRY_STATUS,
+  INQUIRY_TIMELINE_REMARKS,
+} = require("./constants/status");
+
 // MySQL database connection. Keep table names and queries aligned with the existing schema.
 const db = mysql.createConnection({
   host: "localhost",
@@ -287,7 +294,7 @@ app.post("/app/inquiry/add", (req, res) => {
 
   db.query(
     sql,
-    [customer_name, phone, destination, package_name, status],
+    [customer_name, phone, destination, package_name, INQUIRY_STATUS.NEW],
     (err, result) => {
       if (err) {
         console.log(err);
@@ -307,7 +314,7 @@ app.post("/app/inquiry/add", (req, res) => {
         )
         VALUES(?,?,?)
         `,
-        [inquiryID, "New Inquiry", "Customer submitted inquiry"],
+        [inquiryID, INQUIRY_STATUS.NEW, INQUIRY_TIMELINE_REMARKS.SUBMITTED],
       );
 
       res.json({
@@ -318,6 +325,33 @@ app.post("/app/inquiry/add", (req, res) => {
   );
 });
 
+app.put("/api/inquiries/:id/status", (req, res) => {
+  const { status, remarks } = req.body;
+  const inquiryId = req.params.id;
+
+  db.query(
+    "UPDATE inquiries SET status = ? WHERE id = ?",
+    [status, inquiryId],
+    (err) => {
+      if (err) return res.status(500).json(err);
+
+      db.query(
+        `INSERT INTO inquiry_timeline
+        (inquiry_id, status, remarks)
+        VALUES (?, ?, ?)`,
+        [inquiryId, status, remarks],
+        (timelineErr) => {
+          if (timelineErr) return res.status(500).json(timelineErr);
+
+          res.json({
+            success: true,
+            message: "Status Updated Successfully",
+          });
+        },
+      );
+    },
+  );
+});
 // API: GET /api/inquiries
 // Returns inquiries with matching user information for the admin inquiry list.
 app.get("/api/inquiries", (req, res) => {
